@@ -1,0 +1,9 @@
+Source: https://github.com/wkvong/multimodal-baby/tree/master/multimodal
+
+`vocab.json`, the training vocabulary of CVCL's text encoder, corresponds to our in-vocabulary words in this study.
+
+Modification:
+1. `multimodal_lit.py`
+    - `tokenize` function: bug free for ResNeXt and ViT backbones now.
+    - `load_model` function: add new module structure for checkpoint loading. 
+

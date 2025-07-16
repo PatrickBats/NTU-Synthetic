@@ -1,0 +1,16 @@
+experiments/
+arch_experiments/
+results/
+.vscode/
+neuron_concepts/
+notebooks/fig
+.DS_Store
+__pycache__/
+*.py[cod]
+data/trials/
+saved_activations/
+*.egg-info/
+venv/
+config/
+ref.md
+net-dissect/dataset
