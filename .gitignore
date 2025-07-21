@@ -14,3 +14,7 @@ venv/
 config/
 ref.md
 net-dissect/dataset
+
+# Ignore any folder or file path containing “_color”
+PatrickProject/ImageEditing/third_party/OmniGen2/synthetic_dataset/**/*_color*/**/*.png
+PatrickProject/ImageEditing/third_party/OmniGen2/synthetic_dataset/**/*_color*/**/*.csv
