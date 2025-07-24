@@ -17,12 +17,12 @@ fan, yes, yes
 lei, yes, yes
 stapler, yes, yes
 exercise_equipment, yes, yes
-handgun, yes,
-seashell, yes,
-powerstrip, yes,
-lipstick, yes,
-lantern, yes
-doorknob, yes
+handgun, yes, yes
+seashell, yes, yes
+powerstrip, yes, yes
+lipstick, yes, yes
+lantern, yes, yes
+doorknob, yes, yes
 abacus, yes
 jack-o-lantern, yes
 camcorder, yes
@@ -32,10 +32,10 @@ handbag, yes
 stool, yes
 toyrabbit, yes
 candleholderwithcandle, yes
-cushion
-lock
-train
-bonzai
+cushion, yes
+lock, yes
+train, yes
+bonza   
 ring
 goggle
 trumpet
