@@ -1,7 +1,7 @@
 Class,Basemade,Colorsmade
 ball,yes,yes
 butterfly,yes,yes
-muffins,yes,
+muffin,yes,yes
 pitcher,yes,
 tennisracquet,yes,yes
 phone,yes,yes
@@ -16,7 +16,7 @@ trophy,yes,yes
 fan,yes,yes
 lei,yes,yes
 stapler,yes,yes
-exercise_equipment,yes,
+exercise_equipment,,
 handgun,yes,yes
 seashell,yes,yes
 powerstrip,yes,yes
@@ -35,7 +35,7 @@ candleholderwithcandle,yes,yes
 cushion,yes,
 lock,yes,
 train,yes,
-bonza,yes,
+bonzai,yes,
 ring,yes,
 goggle,yes,
 trumpet,yes,
