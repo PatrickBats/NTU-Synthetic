@@ -16,7 +16,7 @@ trophy,yes,yes
 fan,yes,yes
 lei,yes,yes
 stapler,yes,yes
-dumbell,,
+dumbell,yes,yes
 handgun,yes,yes
 seashell,yes,yes
 powerstrip,yes,yes
@@ -30,25 +30,25 @@ bird,yes,yes
 saddle,yes,yes
 handbag,yes,yes
 stool,yes,yes
-toyrabbit,yes,
+toyrabbit,yes,yes
 candleholderwithcandle,yes,yes
 cushion,yes,
 lock,yes,
-train,yes,
-bonzai,yes,
-ring,yes,
-goggle,yes,
-trumpet,yes,
-vase,yes,
-axe,yes,
-tricycle,yes,
+train,yes,yes
+bonzai,yes,yes
+ring,yes,yes
+goggle,yes,yes
+trumpet,yes,yes
+vase,yes,yes
+axe,yes,yes
+tricycle,yes,yes
 toothpaste,yes,
-nailpolish, yes
-calculator, yes
-pen,, yes
-tree,, yes
-earrings,, yes
-toyhorse,, yes
+nailpolish,yes,
+calculator,yes,
+pen,yes,
+tree,yes,
+earrings,yes,
+toyhorse,yes,
 gamehandheld,,
 apple,,
 babushkadolls,,
