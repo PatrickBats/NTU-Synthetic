@@ -16,7 +16,7 @@ trophy,yes,yes
 fan,yes,yes
 lei,yes,yes
 stapler,yes,yes
-dumbell,,
+exercise_equipment,,
 handgun,yes,yes
 seashell,yes,yes
 powerstrip,yes,yes
@@ -43,12 +43,12 @@ vase,yes,
 axe,yes,
 tricycle,yes,
 toothpaste,yes,
-nailpolish, yes
-calculator, yes
-pen,, yes
-tree,, yes
-earrings,, yes
-toyhorse,, yes
+nailpolish,,
+calculator,,
+pen,,
+tree,,
+earings,,
+toyhorse,,
 gamehandheld,,
 apple,,
 babushkadolls,,
