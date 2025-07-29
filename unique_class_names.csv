@@ -42,24 +42,24 @@ trumpet,yes,yes
 vase,yes,yes
 axe,yes,yes
 tricycle,yes,yes
-toothpaste,yes,
-nailpolish,yes,
-calculator,yes,
-pen,yes,
-tree,yes,
+toothpaste,yes, yes
+nailpolish,yes, yes
+calculator,yes, yes
+pen,yes, yes
+tree,yes, yes
 earrings,yes,
 toyhorse,yes,
-gamehandheld,,
-apple,,
-babushkadolls,,
-saltpeppershake,,
-dresser,,
-rug,,
-wineglass,,
-breadloaf,,
-keyboard,,
-meat,,
-sippycup,,
+gamehandheld, yes,
+apple, yes,
+babushkadolls, yes,
+saltpeppershake, yes,
+dresser, yes,
+rug, yes,
+wineglass, yes,
+breadloaf, yes,
+keyboard, yes,
+meat, yes,
+sippycup, yes,
 cookie,,
 helmet,,
 doll,,
