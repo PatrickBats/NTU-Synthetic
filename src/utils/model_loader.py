@@ -2,7 +2,7 @@ import torch.nn as nn
 import clip
 from torch.nn import init
 from torchvision.models import resnet50, resnext50_32x4d, ResNeXt50_32X4D_Weights
-from ..models.multimodal.multimodal_lit import MultiModalLitModel
+from models.multimodal.multimodal_lit import MultiModalLitModel
 from huggingface_hub import hf_hub_download
 import os
 import torch
@@ -10,10 +10,10 @@ import sys
 
 def show_available_models():
     available_models = ['cvcl-resnext', 'cvcl-random',
-                       'resnext', 'resnext-random',
-                       'clip','clip-res',
-                       'dino_s_resnext50', 
-                       ]
+                        'resnext', 'resnext-random',
+                        'clip','clip-res',
+                        'dino_s_resnext50', 
+                        ]
     return available_models
 
 def replace_gelu(module):
