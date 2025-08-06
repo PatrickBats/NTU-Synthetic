@@ -2,7 +2,7 @@ import os
 import torch
 import torchvision
 from torch.utils.data import Dataset, ConcatDataset 
-from src.utils.object_dataset import KonkObjectDataset, KonkTrialDataset  
+from .object_dataset import KonkObjectDataset, KonkTrialDataset  
 
 # Dataset root
 data_root = os.getenv("DATA_ROOT", default="/home/Dataset/")
@@ -71,6 +71,3 @@ def trial_collate_fn(batch):
     foil_labels = [item[2] for item in batch]  # Keep foil labels as a list of lists
 
     return imgs, labels, foil_labels
-
-
-

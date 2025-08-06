@@ -13,14 +13,31 @@ dependencies:
   - diffusers
   - einops
   - opencv
-  - numpy
-  - pandas
-  - matplotlib
-  - spacy
+  - numpy>=1.24.4
+  - pandas>=2.0.3
+  - matplotlib>=3.7.5
+  - spacy>=3.7.5
   - pip
+  - ipykernel  # For Jupyter notebook support
+  - jupyter    # For running notebooks
+  - pillow>=10.4.0    # For image processing
+  - scikit-learn  # For metrics and data processing
+  - scikit-image  # For image processing
+  - pytorch-lightning>=2.3.3
+  - seaborn  # For visualization
+  - openpyxl  # For Excel support
+  - imageio>=2.35.0
+  - scipy>=1.10.1
+  - accelerate  # For OmniGen2
   - pip:
     - open_clip_torch
     - triton-windows
-    - huggingface_hub
+    - huggingface_hub>=0.24.6
     - requests
-    - tqdm
+    - tqdm>=4.66.5
+    - clip  # For CLIP model support
+    - openai-clip==1.0.1
+    - google-api-python-client>=2.141.0
+    - google-auth-oauthlib>=1.2.1
+    - gsheets>=0.6.1
+    - pycocoevalcap>=1.2

@@ -10,24 +10,51 @@ This project tests CVCL's ability to perform fine-grained classification by usin
 
 The synthetic dataset allows us to systematically evaluate how well CVCL, trained on a child's natural learning experience, can distinguish subtle differences in object properties.
 
-## Datasets
-- **Synthetic Dataset**: Controlled synthetic objects with systematic variations
-- **Konk Lab Dataset**: Original object recognition dataset for comparison
-
 ## Setup
+
+### 1. Create conda environment
 ```bash
-# Create conda environment
+# Create environment
 conda env create -f environment.yml
 
 # Activate environment
 conda activate ntu-synthetic
+```
+
+### 2. Install additional requirements
+```bash
+# Install spaCy language model
+python -m spacy download en_core_web_sm
 
 # Verify setup
 python scripts/test_environment.py
-
-# Download datasets
-python scripts/download_synthetic_dataset.py  # For synthetic dataset
-python scripts/download_konklab_dataset.py    # For Konk Lab dataset
 ```
 
-More detailed documentation coming soon.
+### 3. Download datasets
+```bash
+# Download synthetic dataset
+python scripts/download_synthetic_dataset.py
+
+# Download Konk Lab dataset
+python scripts/download_konklab_dataset.py
+```
+
+## Running Classification Tests
+The classification tests compare CLIP and CVCL models on various object recognition tasks:
+
+```bash
+# Open the classification notebook
+jupyter notebook PatrickProject/KonkLab_Classification/run_classification_tests.ipynb
+```
+
+## Project Structure
+- `data/` - Contains datasets
+  - `KonkLab/` - Original Konk Lab dataset
+  - `SyntheticKonkle/` - Synthetic dataset with controlled variations
+- `scripts/` - Utility scripts for downloading datasets and testing environment
+- `src/` - Core model utilities
+- `PatrickProject/` - Classification experiments and analysis
+
+## Models Used
+- **CLIP**: OpenAI's Contrastive Language-Image Pre-training model
+- **CVCL**: Child's View for Contrastive Learning model from [multimodal-baby](https://github.com/wkvong/multimodal-baby)
