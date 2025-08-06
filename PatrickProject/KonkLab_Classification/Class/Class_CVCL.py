@@ -7,17 +7,26 @@ import torch
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
+from torchvision import transforms
+from torch.nn import functional as F
 
-# ─── make the top-level repo a Python package root ───
+# ─── Path setup ───
 THIS_DIR  = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir, os.pardir, os.pardir))
+
+# Add discover-hidden-visual-concepts to path
+DISCOVER_ROOT = os.path.join(REPO_ROOT, 'discover-hidden-visual-concepts')
+sys.path.insert(0, DISCOVER_ROOT)
 sys.path.insert(0, REPO_ROOT)
 
-from src.utils.model_loader       import load_model
-from src.models.feature_extractor import FeatureExtractor
+# Import from discover-hidden-visual-concepts repo
+sys.path.append(os.path.join(DISCOVER_ROOT, 'src'))
+from utils.model_loader import load_model
+from models.feature_extractor import FeatureExtractor
+from models.multimodal.multimodal_lit import MultiModalLitModel
 
 # ─── hard-coded paths ───
-CSV_PATH   = os.path.join(REPO_ROOT, 'PatrickProject', 'testdata.csv')
+CSV_PATH   = os.path.join(REPO_ROOT, 'data', 'KonkLab', 'testdata.csv')
 IMG_DIR    = os.path.join(REPO_ROOT, 'data', 'KonkLab', '17-objects')
 MASTER_CSV = os.path.join(
     REPO_ROOT,
@@ -99,7 +108,7 @@ def main():
     # 5) run 4-way trials
     total_correct = 0
     total_trials  = 0
-    print("[ℹ️] Running 4-way trials—prototype over class …")
+    print("Running 4-way trials - prototype over class...")
     for cls, idxs in class2idxs.items():
         if len(idxs) < 2:
             continue
@@ -144,7 +153,7 @@ def main():
     else:
         row.to_csv(MASTER_CSV, index=False, float_format='%.4f')
 
-    print(f"[✅] Appended result to {MASTER_CSV}")
+    print(f"Appended result to {MASTER_CSV}")
 
 if __name__ == "__main__":
     main()

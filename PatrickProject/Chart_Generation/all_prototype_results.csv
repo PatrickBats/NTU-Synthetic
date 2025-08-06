@@ -30,3 +30,7 @@ Texture,CVCL,DCDT-CVCL,797,920,.866
 Texture,CLIP,SCDT-CLIP,176,440,.400
 Texture,CVCL,SCDT-CVCL,170,440,.386
 clip-resnext,Class-Prototype,659,670,0.9836
+cvcl-resnext,Class-Prototype,590,670,0.8806
+cvcl-resnext,Class-Prototype,590,670,0.8806
+clip-resnext,Class-Prototype,659,670,0.9836
+clip-resnext,Class-Prototype,659,670,0.9836
