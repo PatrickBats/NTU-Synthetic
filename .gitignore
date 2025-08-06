@@ -1,0 +1,77 @@
+# Existing ignores
+experiments/
+arch_experiments/
+results/
+.vscode/
+neuron_concepts/
+notebooks/fig
+.DS_Store
+__pycache__/
+*.py[cod]
+data/trials/
+saved_activations/
+*.egg-info/
+venv/
+config/
+ref.md
+net-dissect/dataset
+
+# Large data files
+*.zip
+*.tar.gz
+*.pkl
+
+# Dataset folders
+data/*
+!data/.gitkeep
+
+# Test downloads
+scripts/test_*/
+
+# Checkpoint files
+*.ckpt
+*.pth
+*.h5
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Ignore specific dataset folders
+**/synthetic_dataset/*_color*/
+data/SyntheticKonkle/*_color/

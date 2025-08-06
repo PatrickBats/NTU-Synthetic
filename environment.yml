@@ -1,0 +1,26 @@
+name: ntu-synthetic
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch
+  - torchvision
+  - pytorch-cuda=11.8
+  - transformers
+  - diffusers
+  - einops
+  - opencv
+  - numpy
+  - pandas
+  - matplotlib
+  - spacy
+  - pip
+  - pip:
+    - open_clip_torch
+    - triton-windows
+    - huggingface_hub
+    - requests
+    - tqdm
