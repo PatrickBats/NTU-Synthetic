@@ -54,6 +54,13 @@ def collate_fn(batch):
     return imgs, classes, colors, textures, idxs
 
 
+def check_existing_results(model_name, test_name):
+    if os.path.exists(MASTER_CSV):
+        df = pd.read_csv(MASTER_CSV)
+        existing = df[(df['Model'] == model_name) & (df['Test'] == test_name)]
+        return len(existing) > 0
+    return False
+
 def main():
     parser = argparse.ArgumentParser(
         "4-way CLIP eval: same-class, diff-color & texture"
