@@ -1,0 +1,30 @@
+name: omnigen
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch=2.6.0
+  - torchvision=0.21.0
+  - pytorch-cuda=12.1
+  - pip
+  - pip:
+    - timm
+    - einops
+    - accelerate
+    - transformers==4.51.3
+    - diffusers
+    - opencv-python-headless
+    - scipy
+    - wandb
+    - matplotlib
+    - Pillow
+    - tqdm
+    - omegaconf
+    - python-dotenv
+    - ninja
+    - ipykernel
+    - wheel
+    - triton-windows; platform_system == "Windows"
