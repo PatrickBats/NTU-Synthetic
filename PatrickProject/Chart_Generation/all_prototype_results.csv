@@ -34,3 +34,15 @@ cvcl-resnext,Class-Prototype,590,670,0.8806
 cvcl-resnext,Class-Prototype,590,670,0.8806
 clip-resnext,Class-Prototype,659,670,0.9836
 clip-resnext,Class-Prototype,659,670,0.9836
+cvcl-resnext,Class-Prototype,590,670,0.8806
+clip-resnext,Class-Prototype,659,670,0.9836
+cvcl-resnext,Color-Prototype,2485,2730,0.9103
+clip-resnext,Color-Prototype,2685,2730,0.9835
+cvcl-resnext,Color-Within-Class,1520,2670,0.5693
+clip-resnext,Color-Within-Class,1659,2670,0.6213
+cvcl-resnext,Different-Class-Color-Size,3434,3660,0.9383
+clip-resnext,Different-Class-Color-Size,3639,3660,0.9943
+cvcl-resnext,Color-Within-Class,1520,2670,0.5693
+clip-resnext,Color-Within-Class,1659,2670,0.6213
+cvcl-resnext,Same-Class-Different-Color-Size,1449,1930,0.7508
+clip-resnext,Same-Class-Different-Color-Size,1514,1930,0.7845
