@@ -36,3 +36,5 @@ cvcl-resnext,Different-Class-Different-Texture,797,920,0.8663
 clip-resnext,Different-Class-Different-Texture,907,920,0.9859
 cvcl-resnext,Same-Class-Different-Texture,170,440,0.3864
 clip-resnext,Same-Class-Different-Texture,172,440,0.3909
+cvcl-resnext,Class-Prototype,590,670,0.8806
+clip-resnext,Class-Prototype,659,670,0.9836
