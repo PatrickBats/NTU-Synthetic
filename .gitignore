@@ -14,3 +14,9 @@ venv/
 config/
 ref.md
 net-dissect/dataset
+
+# Claude-specific documentation
+CLAUDE.md
+claude.md
+**/CLAUDE.md
+**/claude.md
