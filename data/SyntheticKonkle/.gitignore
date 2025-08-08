@@ -1,0 +1,13 @@
+# Ignore colored image files in _color folders
+*_color/*.png
+*_color/*.jpg
+*_color/*.jpeg
+*_color/*.gif
+*_color/*.bmp
+
+# Keep base images and CSV files
+# Base folders and their contents are NOT ignored
+# CSV files are kept
+
+# Keep gitignore itself
+!.gitignore
