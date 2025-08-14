@@ -28,14 +28,6 @@ This overlap analysis helps explain:
 - Understand CVCL performance limitations
 - Select appropriate test objects for fair model comparison
 
-### Example Insights
-Objects likely in CVCL vocabulary:
-- apple, ball, book (common child words)
-
-Objects possibly missing:
-- babushkadolls, beanbagchair (less common in child speech)
-
-## Relationship to Classification Tests
 
 ### Fair Comparisons
 - Tests using objects in both vocabularies are most fair
@@ -45,10 +37,3 @@ Objects possibly missing:
 ### Zero-shot Limitations
 - CVCL cannot classify objects not in its vocabulary
 - CLIP has broader vocabulary from internet training
-- This file documents these systematic differences
-
-## Notes
-- Critical for understanding model comparison results
-- Explains performance gaps between CVCL and CLIP
-- Should be consulted when interpreting classification accuracies
-- Highlights the importance of training data in model capabilities
