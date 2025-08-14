@@ -34,27 +34,17 @@ tokens, token_len = model.tokenize(texts)  # Uses vocab.json
 text_features = model.encode_text(tokens, token_len)
 ```
 
-### Why This Vocabulary?
-- **Child-centered**: Based on SAYCam dataset (infant perspective)
-- **Limited vocabulary**: Reflects early language learning
-- **Real-world relevance**: Words children actually hear/use
+
 
 ## Relationship to Project
 
 ### Model Differences
 - **CVCL models**: Use this vocabulary for text encoding
-- **CLIP models**: Use their own tokenizer (not this file)
 
 ### Impact on Classification
 - CVCL limited to concepts within this vocabulary
 - May affect zero-shot performance on novel concepts
 - Important for understanding CVCL vs CLIP differences
-
-## Key Characteristics
-- **Total tokens**: 1,418
-- **Language**: English
-- **Source**: SAYCam child language corpus
-- **Case**: Lowercase tokens
 
 ## Notes
 - Essential for CVCL model operation
