@@ -35,7 +35,7 @@ from models.feature_extractor import FeatureExtractor
 
 # Data paths
 DATA_DIR = os.path.join(REPO_ROOT, 'data', 'SyntheticKonkle_224')
-RESULTS_DIR = os.path.join(REPO_ROOT, 'PatrickProject', 'Chart_Generation')
+RESULTS_DIR = os.path.join(REPO_ROOT, 'experiments', 'Chart_Generation')
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 

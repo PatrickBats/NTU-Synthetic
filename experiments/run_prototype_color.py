@@ -1,16 +1,16 @@
 """
-Prototype Texture Discrimination Test (SCDT)
-=============================================
-Same Class Different Texture: Tests whether models can discriminate
-between different textures of the same object class using prototype-based
+Prototype Color Discrimination Test (SCDC)
+==========================================
+Same Class Different Color: Tests whether models can discriminate
+between different colors of the same object class using prototype-based
 4-way forced choice.
 
 Models tested: cvcl-resnext, clip-res, siglip, dino_s_resnext50, dino_resnet50, resnext
 
 Usage:
-    python run_prototype_texture.py
-    python run_prototype_texture.py --models cvcl-resnext clip-res
-    python run_prototype_texture.py --n_seeds 3 --trials_per_class 500
+    python run_prototype_color.py
+    python run_prototype_color.py --models cvcl-resnext clip-res
+    python run_prototype_color.py --n_seeds 3 --trials_per_class 500
 """
 
 import os
@@ -35,7 +35,7 @@ from models.feature_extractor import FeatureExtractor
 
 # Data paths
 DATA_DIR = os.path.join(REPO_ROOT, 'data', 'SyntheticKonkle_224')
-RESULTS_DIR = os.path.join(REPO_ROOT, 'PatrickProject', 'Chart_Generation')
+RESULTS_DIR = os.path.join(REPO_ROOT, 'experiments', 'Chart_Generation')
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 
@@ -121,53 +121,48 @@ def extract_all_embeddings(model_name, seed, device, batch_size=64):
     return all_embs, all_classes, all_colors, all_sizes, all_textures, all_idxs
 
 
-def run_scdt_test(all_embs, all_classes, all_colors, all_sizes, all_textures, all_idxs,
+def run_scdc_test(all_embs, all_classes, all_colors, all_sizes, all_textures, all_idxs,
                   seed, trials_per_class=500):
-    """Run SCDT test: Same Class Different Texture."""
+    """Run SCDC test: Same Class Different Color."""
     random.seed(seed)
 
-    # Group by class, color, size (vary texture)
-    class_color_size_groups = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    # Group by class, size, texture (vary color)
+    class_size_texture_groups = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     for idx, cls, col, size, texture in zip(all_idxs, all_classes, all_colors, all_sizes, all_textures):
-        class_color_size_groups[cls][(col, size)][texture].append(idx)
+        class_size_texture_groups[cls][(size, texture)][col].append(idx)
 
-    unique_classes = list(class_color_size_groups.keys())
+    unique_classes = list(class_size_texture_groups.keys())
     class_correct = defaultdict(int)
     class_total = defaultdict(int)
 
-    for target_class in tqdm(unique_classes, desc="SCDT Test"):
+    for target_class in tqdm(unique_classes, desc="SCDC Test"):
         trials_done = 0
 
-        for (col, size), texture_groups in class_color_size_groups[target_class].items():
+        for (size, texture), color_groups in class_size_texture_groups[target_class].items():
             if trials_done >= trials_per_class:
                 break
 
-            if 'smooth' not in texture_groups or 'bumpy' not in texture_groups:
-                continue
-
-            if len(texture_groups['smooth']) < 2 or len(texture_groups['bumpy']) < 2:
+            available_colors = list(color_groups.keys())
+            if len(available_colors) < 4:
                 continue
 
             n_trials = min(50, trials_per_class - trials_done)
 
             for _ in range(n_trials):
-                target_texture = random.choice(['smooth', 'bumpy'])
-                distractor_texture = 'bumpy' if target_texture == 'smooth' else 'smooth'
+                selected_colors = random.sample(available_colors, 4)
+                target_color = selected_colors[0]
+                distractor_colors = selected_colors[1:4]
 
-                q = random.choice(texture_groups[target_texture])
-                same_texture_group = [i for i in texture_groups[target_texture] if i != q]
+                q = random.choice(color_groups[target_color])
+                same_color_group = [i for i in color_groups[target_color] if i != q]
 
-                if not same_texture_group:
-                    continue
-
-                proto = all_embs[[all_idxs.index(i) for i in same_texture_group]].mean(0)
+                if same_color_group:
+                    proto = all_embs[[all_idxs.index(i) for i in same_color_group]].mean(0)
+                else:
+                    proto = all_embs[all_idxs.index(q)]
                 proto = proto / proto.norm()
 
-                distractors = []
-                for _ in range(3):
-                    if texture_groups[distractor_texture]:
-                        distractors.append(random.choice(texture_groups[distractor_texture]))
-
+                distractors = [random.choice(color_groups[c]) for c in distractor_colors if color_groups[c]]
                 if len(distractors) < 3:
                     continue
 
@@ -188,6 +183,7 @@ def save_results(model_name, all_results, trials_per_class):
     """Save results to CSV files."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+    # Detailed results
     detailed_rows = []
     for cls, accs in all_results.items():
         for seed_idx, acc in enumerate(accs):
@@ -197,15 +193,16 @@ def save_results(model_name, all_results, trials_per_class):
                 'seed': seed_idx,
                 'accuracy': acc,
                 'n_trials': trials_per_class,
-                'test_type': 'SCDT'
+                'test_type': 'SCDC'
             })
 
     if detailed_rows:
         df = pd.DataFrame(detailed_rows)
-        filename = f'prototype_texture_{model_name}_results_{timestamp}.csv'
+        filename = f'prototype_color_{model_name}_results_{timestamp}.csv'
         df.to_csv(os.path.join(RESULTS_DIR, filename), index=False)
         print(f"Saved: {filename}")
 
+    # Summary statistics
     summary_rows = []
     for cls, accs in all_results.items():
         if accs:
@@ -215,18 +212,18 @@ def save_results(model_name, all_results, trials_per_class):
                 'mean_accuracy': np.mean(accs),
                 'std': np.std(accs, ddof=1) if len(accs) > 1 else 0,
                 'n_seeds': len(accs),
-                'test_type': 'SCDT'
+                'test_type': 'SCDC'
             })
 
     if summary_rows:
         df = pd.DataFrame(summary_rows)
-        filename = f'prototype_texture_{model_name}_summary_{timestamp}.csv'
+        filename = f'prototype_color_{model_name}_summary_{timestamp}.csv'
         df.to_csv(os.path.join(RESULTS_DIR, filename), index=False)
         print(f"Saved: {filename}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Run prototype texture discrimination (SCDT) test')
+    parser = argparse.ArgumentParser(description='Run prototype color discrimination (SCDC) test')
     parser.add_argument('--models', nargs='+',
                        default=['cvcl-resnext', 'clip-res', 'siglip', 'dino_s_resnext50', 'dino_resnet50', 'resnext'],
                        help='Models to test')
@@ -248,7 +245,7 @@ def main():
     for model_name in args.models:
         try:
             print(f"\n{'='*60}")
-            print(f"SCDT (Texture Discrimination): {model_name}")
+            print(f"SCDC (Color Discrimination): {model_name}")
             print(f"{'='*60}")
 
             all_results = defaultdict(list)
@@ -265,20 +262,21 @@ def main():
                         continue
                     raise e
 
-                class_accs = run_scdt_test(embs, classes, colors, sizes, textures, idxs,
+                class_accs = run_scdc_test(embs, classes, colors, sizes, textures, idxs,
                                            seed=seed, trials_per_class=args.trials_per_class)
 
                 for cls, acc in class_accs.items():
                     all_results[cls].append(acc)
 
                 mean_acc = np.mean(list(class_accs.values())) if class_accs else 0
-                print(f"  SCDT mean accuracy: {mean_acc:.3f}")
+                print(f"  SCDC mean accuracy: {mean_acc:.3f}")
 
             save_results(model_name, all_results, args.trials_per_class)
 
+            # Print summary
             all_means = [np.mean(accs) for accs in all_results.values() if accs]
             if all_means:
-                print(f"\nOverall SCDT: {np.mean(all_means):.3f}")
+                print(f"\nOverall SCDC: {np.mean(all_means):.3f}")
 
         except Exception as e:
             print(f"Error testing {model_name}: {e}")

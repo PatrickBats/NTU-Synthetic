@@ -27,7 +27,7 @@ Two complementary test paradigms:
 - **Prototype-based (image-only)**: Create a class prototype by averaging image embeddings, then 4-way forced choice via cosine similarity
 - **Text-vision (zero-shot)**: Match a text prompt (e.g., "red ball") directly to candidate images via cosine similarity
 
-We also validate on the **KonkLab** dataset of real photographs (17 object classes) to confirm that synthetic results generalize.
+We also validate on the **KonkLab** dataset of real photographs to confirm that synthetic results generalize.
 
 ## Models Compared
 
@@ -44,7 +44,7 @@ We also validate on the **KonkLab** dataset of real photographs (17 object class
 
 ```
 NTU-Synthetic/
-├── PatrickProject/                         # Experiment scripts
+├── experiments/                         # Experiment scripts
 │   ├── run_prototype_class.py              # Class discrimination (synthetic)
 │   ├── run_prototype_class_konklab.py      # Class discrimination (real images)
 │   ├── run_prototype_color.py              # Color discrimination
@@ -95,7 +95,7 @@ python scripts/test_environment.py
 Each experiment script runs independently with configurable models, seeds, and trial counts:
 
 ```bash
-cd PatrickProject
+cd experiments
 
 # Prototype-based tests (all 6 models)
 python run_prototype_class.py --num_trials 4000 --seeds 0 1 2
@@ -115,12 +115,12 @@ python run_textvision_size.py --num_trials 4000 --seeds 0 1 2
 python run_synonym_sensitivity.py
 ```
 
-Results are saved as CSV summaries in `PatrickProject/Chart_Generation/`.
+Results are saved as CSV summaries in `experiments/Chart_Generation/`.
 
 ## Generating Figures
 
 ```bash
-cd PatrickProject/Chart_Generation
+cd experiments/Chart_Generation
 python generate_all_figures.py          # All figures
 python generate_all_figures.py --fig 3  # Specific figure only
 ```
@@ -136,4 +136,4 @@ in Infant-Scale Vision-Language Models.
 
 ## Acknowledgments
 
-This work builds on the [Discovering Hidden Visual Concepts Beyond Linguistic Input in Infant Learning](https://github.com/tsutsui-439/discover-hidden-visual-concepts) framework (CVPR 2025).
+This work builds on the [Discovering Hidden Visual Concepts Beyond Linguistic Input in Infant Learning](https://arxiv.org/abs/2501.05205) framework (CVPR 2025).

@@ -41,7 +41,7 @@ Examples include:
 ## Usage in Project
 
 ### Classification Experiments
-Used in `PatrickProject/SyntheticKonkle_Classification/` notebooks for:
+Used in `experiments/SyntheticKonkle_Classification/` notebooks for:
 - Controlled testing of color recognition
 - Size discrimination tasks
 - Texture classification

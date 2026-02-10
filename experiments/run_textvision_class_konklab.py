@@ -1,20 +1,20 @@
 """
-Text-Vision Class Discrimination Test (Smooth Texture, CVCL-Konkle Overlap)
-===========================================================================
+Text-Vision Class Discrimination Test (KonkLab Real Images, CVCL-Konkle Overlap)
+================================================================================
 
-Zero-shot text-to-image class discrimination on synthetic smooth objects,
+Zero-shot text-to-image class discrimination on KonkLab real images,
 restricted to the 23 classes overlapping CVCL training and Konkle test set
 (from CVCLKonkMatches.csv).
 
 Test Design:
-1. Load 23 classes from CVCLKonkMatches.csv
-2. Filter SyntheticKonkle to smooth texture only, exclude black/white
+1. Load 23 classes from CVCLKonkMatches.csv, map to KonkLab names
+2. Filter KonkLab to overlapping classes
 3. For each trial:
-   - Encode target class name as text
+   - Encode NATURAL class name as text (e.g., "bread" not "breadloaf")
    - Select query image (target class)
    - Select 3 distractors (same color + size, different class)
    - 4-way forced choice based on cosine similarity(text, image)
-4. Compare with prototype-based results on same classes
+4. Compare with prototype-based results and synthetic text-vision results
 
 Models tested (text encoders only):
 - cvcl-resnext: CVCL with ResNeXt backbone
@@ -22,16 +22,15 @@ Models tested (text encoders only):
 - siglip: Google SigLIP model
 
 Usage:
-    python run_textvision_class.py
-    python run_textvision_class.py --models cvcl-resnext clip-res
-    python run_textvision_class.py --num_trials 4000 --seeds 0 1 2
+    python run_textvision_class_konklab.py
+    python run_textvision_class_konklab.py --models cvcl-resnext clip-res
+    python run_textvision_class_konklab.py --num_trials 4000 --seeds 0 1 2
 """
 
 import os
 import sys
 import argparse
 import random
-import glob
 import torch
 import pandas as pd
 import numpy as np
@@ -51,15 +50,34 @@ from utils.model_loader import load_model
 from models.feature_extractor import FeatureExtractor
 
 # Data paths
-DATA_DIR = os.path.join(REPO_ROOT, 'data', 'SyntheticKonkle_224', 'SyntheticKonkle')
-MASTER_CSV = os.path.join(REPO_ROOT, 'data', 'SyntheticKonkle', 'master_labels.csv')
+DATA_DIR = os.path.join(REPO_ROOT, 'data', 'KonkLab', '17-objects')
+KONKLAB_CSV = os.path.join(REPO_ROOT, 'data', 'KonkLab', 'testdata.csv')
 CLASSES_CSV = os.path.join(REPO_ROOT, 'data', 'CVCL_Konkle_Overlap', 'CVCLKonkMatches.csv')
-RESULTS_DIR = os.path.join(REPO_ROOT, 'PatrickProject', 'Chart_Generation')
+RESULTS_DIR = os.path.join(REPO_ROOT, 'experiments', 'Chart_Generation')
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
+# Name mapping: natural (SyntheticKonkle/CVCL) → KonkLab
+NATURAL_TO_KONKLAB = {
+    'bread': 'breadloaf',
+    'muffin': 'muffins',
+    'christmastreeornamentball': 'christmastreeornamantball',
+    'candle': 'candleholderwithcandle',
+    'camera': 'camcorder',
+    'pillow': 'cushion',
+    'earrings': 'earings',
+    'handheldgame': 'gamehandheld',
+    'pumpkin': 'jack-o-lantern',
+    'saltandpeppershake': 'saltpeppershake',
+    'horse': 'toyhorse',
+    'rabbit': 'toyrabbit',
+    'dumbell': 'exercise_equipment',
+}
+# Reverse: KonkLab → natural
+KONKLAB_TO_NATURAL = {v: k for k, v in NATURAL_TO_KONKLAB.items()}
 
-class SyntheticImageDataset(Dataset):
-    """Dataset class for SyntheticKonkle images."""
+
+class KonkLabImageDataset(Dataset):
+    """Dataset class for KonkLab images."""
     def __init__(self, df, data_dir, transform):
         self.df = df.reset_index(drop=True)
         self.data_dir = data_dir
@@ -70,7 +88,7 @@ class SyntheticImageDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        img_path = os.path.join(self.data_dir, row['folder'], row['filename'])
+        img_path = os.path.join(self.data_dir, row['Class'], row['Filename'])
         img = Image.open(img_path).convert('RGB')
         if self.transform:
             img = self.transform(img)
@@ -80,7 +98,7 @@ class SyntheticImageDataset(Dataset):
 def extract_image_embeddings(model_name, model, transform, df, data_dir, device, batch_size=32):
     """Extract normalized image embeddings for all images in dataframe."""
     extractor = FeatureExtractor(model_name, model, device)
-    dataset = SyntheticImageDataset(df, data_dir, transform)
+    dataset = KonkLabImageDataset(df, data_dir, transform)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
     all_embeddings = []
@@ -94,22 +112,22 @@ def extract_image_embeddings(model_name, model, transform, df, data_dir, device,
     return torch.cat(all_embeddings, dim=0).float()
 
 
-def extract_text_embeddings(model_name, model, classes, device):
-    """Extract normalized text embeddings for class names."""
+def extract_text_embeddings(model_name, model, text_labels, device):
+    """Extract normalized text embeddings for class labels."""
     extractor = FeatureExtractor(model_name, model, device)
     with torch.no_grad():
-        txt_features = extractor.get_txt_feature(list(classes))
+        txt_features = extractor.get_txt_feature(list(text_labels))
         txt_features = extractor.norm_features(txt_features)
     return txt_features.cpu().float()
 
 
 def run_text_vision_test(model_name, seed, df, img_embeddings, txt_embeddings,
-                         classes, num_trials=4000):
+                         available_classes, num_trials=4000):
     """
-    Run text-vision 4-way forced choice test.
+    Run text-vision 4-way forced choice test on KonkLab real images.
 
     For each trial:
-    1. Select target class, encode class name as text
+    1. Select target class, encode natural class name as text
     2. Select query image from target class
     3. Select 3 distractors (same color + size, different class)
     4. 4-way forced choice: argmax cosine similarity(text, image)
@@ -119,23 +137,23 @@ def run_text_vision_test(model_name, seed, df, img_embeddings, txt_embeddings,
     torch.manual_seed(seed)
 
     results = []
-    class_to_txt_idx = {cls: i for i, cls in enumerate(classes)}
+    class_to_txt_idx = {cls: i for i, cls in enumerate(available_classes)}
 
     # Group images by class
     class_indices = defaultdict(list)
     for idx in range(len(df)):
-        class_indices[df.iloc[idx]['class']].append(idx)
+        class_indices[df.iloc[idx]['Class']].append(idx)
 
     # Group by (color, size, class) for controlled distractors
     color_size_class_indices = defaultdict(lambda: defaultdict(list))
     for idx in range(len(df)):
         row = df.iloc[idx]
-        key = (row['color'], row['size'])
-        color_size_class_indices[key][row['class']].append(idx)
+        key = (row['Color'], row['Size'])
+        color_size_class_indices[key][row['Class']].append(idx)
 
-    trials_per_class = num_trials // len(classes)
+    trials_per_class = num_trials // len(available_classes)
 
-    for target_class in tqdm(classes, desc=f"Testing {model_name} (seed {seed})"):
+    for target_class in tqdm(available_classes, desc=f"Testing {model_name} (seed {seed})"):
         target_indices = class_indices[target_class]
         if len(target_indices) == 0:
             continue
@@ -143,12 +161,15 @@ def run_text_vision_test(model_name, seed, df, img_embeddings, txt_embeddings,
         txt_idx = class_to_txt_idx[target_class]
         txt_emb = txt_embeddings[txt_idx]
 
+        # Natural name for this class (used in results)
+        natural_name = KONKLAB_TO_NATURAL.get(target_class, target_class)
+
         for trial in range(trials_per_class):
             # Select target image
             query_idx = random.choice(target_indices)
             query_row = df.iloc[query_idx]
-            target_color = query_row['color']
-            target_size = query_row['size']
+            target_color = query_row['Color']
+            target_size = query_row['Size']
 
             # Find distractors with same color + size but different class
             key = (target_color, target_size)
@@ -177,7 +198,7 @@ def run_text_vision_test(model_name, seed, df, img_embeddings, txt_embeddings,
             similarities = (candidate_embeddings @ txt_emb).numpy()
             prediction_idx = np.argmax(similarities)
 
-            predicted_class = df.iloc[candidate_indices[prediction_idx]]['class']
+            predicted_class = df.iloc[candidate_indices[prediction_idx]]['Class']
             correct = int(predicted_class == target_class)
             confidence = float(similarities[prediction_idx])
 
@@ -185,6 +206,7 @@ def run_text_vision_test(model_name, seed, df, img_embeddings, txt_embeddings,
                 'trial': len(results),
                 'seed': seed,
                 'target_class': target_class,
+                'target_natural_name': natural_name,
                 'query_color': target_color,
                 'query_size': target_size,
                 'distractor1_class': distractor_classes[0],
@@ -225,7 +247,7 @@ def compute_summary(results_df, model_name):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Text-vision class discrimination test (smooth, CVCL-Konkle overlap)')
+        description='Text-vision class discrimination test (KonkLab real, CVCL-Konkle overlap)')
     parser.add_argument('--models', nargs='+',
                         default=['cvcl-resnext', 'clip-res', 'siglip'],
                         help='Models to test (must have text encoder)')
@@ -242,50 +264,44 @@ def main():
 
     print("=" * 80)
     print("Text-Vision Class Discrimination Test")
-    print("Smooth Texture Only | CVCL-Konkle Overlap Classes (23)")
+    print("KonkLab Real Images | CVCL-Konkle Overlap Classes")
     print("=" * 80)
 
-    # Step 1: Load class list from CVCLKonkMatches.csv
+    # Step 1: Load class list from CVCLKonkMatches.csv and map to KonkLab names
     print("\n1. Loading CVCL-Konkle overlap classes...")
     classes_df = pd.read_csv(CLASSES_CSV)
     csv_classes = [c.strip() for c in classes_df['Class'].tolist()]
-    print(f"   Classes from CVCLKonkMatches.csv: {len(csv_classes)}")
-    print(f"   Classes: {', '.join(sorted(csv_classes))}")
+    print(f"   Natural class names from CSV: {len(csv_classes)}")
 
-    # Step 2: Load and filter synthetic data
-    print("\n2. Loading and filtering SyntheticKonkle data...")
-    df = pd.read_csv(MASTER_CSV)
+    # Map to KonkLab names
+    konklab_target_classes = sorted([NATURAL_TO_KONKLAB.get(c, c) for c in csv_classes])
+    print(f"   Mapped KonkLab names: {len(konklab_target_classes)}")
+
+    # Step 2: Load KonkLab data and filter to target classes
+    print("\n2. Loading KonkLab data...")
+    df = pd.read_csv(KONKLAB_CSV)
     print(f"   Total images: {len(df)}")
 
-    # Filter to smooth texture only
-    df = df[df['texture'] == 'smooth'].reset_index(drop=True)
-    print(f"   Smooth texture images: {len(df)}")
+    df = df[df['Class'].isin(konklab_target_classes)].reset_index(drop=True)
+    print(f"   After filtering to overlap classes: {len(df)}")
 
-    # Exclude black and white
-    df = df[~df['color'].isin(['black', 'white'])].reset_index(drop=True)
-    print(f"   After excluding black/white: {len(df)}")
+    available_classes = sorted(df['Class'].unique())
+    print(f"   Available classes: {len(available_classes)}")
+    print(f"   KonkLab names: {', '.join(available_classes)}")
 
-    # Filter to CVCL-overlap classes
-    df = df[df['class'].isin(csv_classes)].reset_index(drop=True)
-    print(f"   After filtering to CVCL-overlap classes: {len(df)}")
-
-    # Verify resized dataset
-    existing_folders = set()
-    for folder in glob.glob(os.path.join(DATA_DIR, '*_color')):
-        class_name = os.path.basename(folder).replace('_color', '')
-        existing_folders.add(class_name)
-
-    available_classes = sorted([c for c in csv_classes if c in existing_folders and c in df['class'].unique()])
-    print(f"   Classes available in resized dataset: {len(available_classes)}")
-    print(f"   Classes: {', '.join(available_classes)}")
-
-    # Final filter
-    df = df[df['class'].isin(available_classes)].reset_index(drop=True)
+    # Show natural name mapping
+    print(f"   Text labels (natural names):")
+    for cls in available_classes:
+        natural = KONKLAB_TO_NATURAL.get(cls, cls)
+        if natural != cls:
+            print(f"      {cls} -> \"{natural}\"")
+        else:
+            print(f"      {cls} -> \"{natural}\"")
 
     # Verify each file exists
     valid_indices = []
     for idx, row in df.iterrows():
-        img_path = os.path.join(DATA_DIR, row['folder'], row['filename'])
+        img_path = os.path.join(DATA_DIR, row['Class'], row['Filename'])
         if os.path.exists(img_path):
             valid_indices.append(idx)
         else:
@@ -293,6 +309,10 @@ def main():
 
     df = df.iloc[valid_indices].reset_index(drop=True)
     print(f"   Final dataset size: {len(df)} images across {len(available_classes)} classes")
+
+    # Build text labels list (natural names, aligned with available_classes)
+    text_labels = [KONKLAB_TO_NATURAL.get(cls, cls) for cls in available_classes]
+    print(f"\n   Text labels for encoding: {text_labels}")
 
     # Step 3: Run tests for each model
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -316,9 +336,9 @@ def main():
             img_embeddings = extract_image_embeddings(model_name, model, transform, df, DATA_DIR,
                                                      args.device, args.batch_size)
 
-            # Extract text embeddings
-            print(f"Extracting text embeddings for {len(available_classes)} class names...")
-            txt_embeddings = extract_text_embeddings(model_name, model, available_classes, args.device)
+            # Extract text embeddings using natural names
+            print(f"Extracting text embeddings for {len(text_labels)} class labels...")
+            txt_embeddings = extract_text_embeddings(model_name, model, text_labels, args.device)
 
             # Run test
             print(f"Running text-vision test...")
@@ -336,7 +356,7 @@ def main():
         combined_results = pd.concat(all_results, ignore_index=True)
 
         # Save detailed results
-        results_file = os.path.join(RESULTS_DIR, f'textvision_class_{model_name}_results_{timestamp}.csv')
+        results_file = os.path.join(RESULTS_DIR, f'textvision_class_konklab_{model_name}_results_{timestamp}.csv')
         combined_results.to_csv(results_file, index=False)
         print(f"\nSaved detailed results: {results_file}")
 
@@ -371,7 +391,7 @@ def main():
         })
 
         summary_df = pd.DataFrame(summary_data)
-        summary_file = os.path.join(RESULTS_DIR, f'textvision_class_{model_name}_summary_{timestamp}.csv')
+        summary_file = os.path.join(RESULTS_DIR, f'textvision_class_konklab_{model_name}_summary_{timestamp}.csv')
         summary_df.to_csv(summary_file, index=False)
         print(f"Saved summary: {summary_file}")
 

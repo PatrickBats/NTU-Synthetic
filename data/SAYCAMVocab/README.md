@@ -50,4 +50,4 @@ text_features = model.encode_text(tokens, token_len)
 - Essential for CVCL model operation
 - Cannot be modified without retraining model
 - Explains why CVCL may struggle with concepts outside child vocabulary
-- Used by all CVCL-based notebooks in PatrickProject/
+- Used by all CVCL-based notebooks in experiments/

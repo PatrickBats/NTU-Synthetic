@@ -1,34 +1,43 @@
 """
-Class Discrimination Test - Prototype-Based (KonkLab Real Images)
-==================================================================
+Class Discrimination Test - Prototype-Based (Smooth Texture, CVCL-Konkle Overlap)
+==================================================================================
 
 Tests whether models can discriminate between different object classes
-using prototype-based 4-way forced choice on KonkLab real image dataset.
+using prototype-based 4-way forced choice on smooth-textured synthetic objects,
+restricted to the 23 classes that overlap between CVCL training vocabulary
+and the Konkle test set (from CVCLKonkMatches.csv).
+
+This allows direct comparison with KonkLab real-image prototype results
+on the same set of classes.
 
 Test Design:
-1. Filter KonkLab to classes that overlap with SyntheticKonkle smooth test
-2. For each trial:
-   - Create prototype from multiple images (>=1 per color) of target class
+1. Load class list from CVCLKonkMatches.csv (24 entries -> 23 in synthetic data)
+2. Filter SyntheticKonkle to smooth texture only, exclude black/white
+3. For each trial:
+   - Create prototype from >=1 image per color of target class
    - Test: query image (target class) vs 3 distractors (different classes)
    - 4-way forced choice based on cosine similarity to prototype
-3. Compare with SyntheticKonkle smooth prototype results
+4. Compare with KonkLab real-image prototype results
 
 Models tested:
 - cvcl-resnext: CVCL with ResNeXt backbone
 - clip-res: CLIP with ResNet-50 backbone
 - siglip: Google SigLIP model
-- dino_s_resnext50: DINO self-supervised (SAYCam S)
+- dino_s_resnext50: DINO self-supervised (SAYCam S, infant vision)
+- dino_resnet50: DINO self-supervised (ImageNet-1k)
 - resnext: ImageNet-pretrained ResNeXt-50
 
 Usage:
-    python run_prototype_class_konklab.py --num_trials 4000 --seeds 0 1 2
-    python run_prototype_class_konklab.py --models cvcl-resnext clip-res
+    python run_prototype_class.py
+    python run_prototype_class.py --models cvcl-resnext clip-res
+    python run_prototype_class.py --num_trials 4000 --seeds 0 1 2
 """
 
 import os
 import sys
 import argparse
 import random
+import glob
 import torch
 import pandas as pd
 import numpy as np
@@ -48,56 +57,15 @@ from utils.model_loader import load_model
 from models.feature_extractor import FeatureExtractor
 
 # Data paths
-DATA_DIR = os.path.join(REPO_ROOT, 'data', 'KonkLab', '17-objects')
-KONKLAB_CSV = os.path.join(REPO_ROOT, 'data', 'KonkLab', 'testdata.csv')
-SYNTHETIC_CSV = os.path.join(REPO_ROOT, 'data', 'SyntheticKonkle', 'master_labels.csv')
-RESULTS_DIR = os.path.join(REPO_ROOT, 'PatrickProject', 'Chart_Generation')
+DATA_DIR = os.path.join(REPO_ROOT, 'data', 'SyntheticKonkle_224', 'SyntheticKonkle')
+MASTER_CSV = os.path.join(REPO_ROOT, 'data', 'SyntheticKonkle', 'master_labels.csv')
+CLASSES_CSV = os.path.join(REPO_ROOT, 'data', 'CVCL_Konkle_Overlap', 'CVCLKonkMatches.csv')
+RESULTS_DIR = os.path.join(REPO_ROOT, 'experiments', 'Chart_Generation')
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 
-def get_overlapping_classes():
-    """Find classes that exist in both SyntheticKonkle and KonkLab datasets."""
-    # Get SyntheticKonkle classes
-    synthetic_df = pd.read_csv(SYNTHETIC_CSV)
-    synthetic_classes = set(synthetic_df['class'].unique())
-
-    # Get KonkLab classes
-    konklab_df = pd.read_csv(KONKLAB_CSV)
-    konklab_classes = set(konklab_df['Class'].unique())
-
-    # Handle naming inconsistencies
-    name_mapping = {
-        'bread': 'breadloaf',
-        'muffin': 'muffins',
-        'christmastreeornamentball': 'christmastreeornamantball',
-        'candle': 'candleholderwithcandle',
-        'camera': 'camcorder',
-        'pillow': 'cushion',
-        'earrings': 'earings',
-        'handheldgame': 'gamehandheld',
-        'pumpkin': 'jack-o-lantern',
-        'saltandpeppershake': 'saltpeppershake',
-        'horse': 'toyhorse',
-        'rabbit': 'toyrabbit',
-        'dumbell': 'exercise_equipment',
-    }
-
-    # Map SyntheticKonkle names to KonkLab names
-    mapped_synthetic = set()
-    for cls in synthetic_classes:
-        if cls in name_mapping:
-            mapped_synthetic.add(name_mapping[cls])
-        else:
-            mapped_synthetic.add(cls)
-
-    # Find overlap (returns KonkLab class names)
-    overlapping = mapped_synthetic & konklab_classes
-
-    return sorted(overlapping)
-
-
-class KonkLabImageDataset(Dataset):
-    """Dataset class for KonkLab images."""
+class SyntheticImageDataset(Dataset):
+    """Dataset class for SyntheticKonkle images."""
     def __init__(self, df, data_dir, transform):
         self.df = df.reset_index(drop=True)
         self.data_dir = data_dir
@@ -108,7 +76,7 @@ class KonkLabImageDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        img_path = os.path.join(self.data_dir, row['Class'], row['Filename'])
+        img_path = os.path.join(self.data_dir, row['folder'], row['filename'])
         img = Image.open(img_path).convert('RGB')
         if self.transform:
             img = self.transform(img)
@@ -118,7 +86,7 @@ class KonkLabImageDataset(Dataset):
 def extract_embeddings(model_name, model, transform, df, data_dir, device, batch_size=32):
     """Extract embeddings for all images in dataframe."""
     extractor = FeatureExtractor(model_name, model, device)
-    dataset = KonkLabImageDataset(df, data_dir, transform)
+    dataset = SyntheticImageDataset(df, data_dir, transform)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
     all_embeddings = []
@@ -152,7 +120,7 @@ def run_prototype_test(model_name, seed, df, embeddings, classes, num_trials=400
 
     # Group images by class
     class_indices = defaultdict(list)
-    for idx, cls in enumerate(df['Class']):
+    for idx, cls in enumerate(df['class']):
         class_indices[cls].append(idx)
 
     # Ensure balanced trials across classes
@@ -167,13 +135,13 @@ def run_prototype_test(model_name, seed, df, embeddings, classes, num_trials=400
 
         # Get color distribution for this class
         target_df = df.iloc[target_indices]
-        colors = target_df['Color'].unique()
+        colors = target_df['color'].unique()
 
         for trial in range(trials_per_class):
             # Step 1: Create prototype (at least 1 per color)
             prototype_indices = []
             for color in colors:
-                color_indices = target_df[target_df['Color'] == color].index.tolist()
+                color_indices = target_df[target_df['color'] == color].index.tolist()
                 if len(color_indices) > 0:
                     sampled_idx = random.choice(color_indices)
                     prototype_indices.append(sampled_idx)
@@ -212,7 +180,7 @@ def run_prototype_test(model_name, seed, df, embeddings, classes, num_trials=400
             prediction_idx = np.argmax(similarities)
 
             # Record result
-            predicted_class = df.iloc[candidate_indices[prediction_idx]]['Class']
+            predicted_class = df.iloc[candidate_indices[prediction_idx]]['class']
             correct = int(predicted_class == target_class)
             confidence = float(similarities[prediction_idx])
 
@@ -261,8 +229,10 @@ def compute_summary(results_df, model_name):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Run class discrimination prototype test (KonkLab real images)')
-    parser.add_argument('--models', nargs='+', default=['cvcl-resnext', 'clip-res', 'siglip', 'dino_s_resnext50', 'dino_resnet50', 'resnext'],
+    parser = argparse.ArgumentParser(
+        description='Run class discrimination prototype test (smooth texture, CVCL-Konkle overlap classes)')
+    parser.add_argument('--models', nargs='+',
+                        default=['cvcl-resnext', 'clip-res', 'siglip', 'dino_s_resnext50', 'dino_resnet50', 'resnext'],
                         help='Models to test')
     parser.add_argument('--seeds', nargs='+', type=int, default=[0, 1, 2],
                         help='Random seeds for statistical confidence')
@@ -272,63 +242,65 @@ def main():
                         help='Batch size for embedding extraction')
     parser.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu',
                         help='Device to use')
-    parser.add_argument('--classes_csv', type=str, default=None,
-                        help='CSV with Class column to filter classes (e.g., CVCLKonkMatches.csv)')
 
     args = parser.parse_args()
 
     print("=" * 80)
-    print("Class Discrimination Test - Prototype-Based (KonkLab Real Images)")
+    print("Class Discrimination Test - Prototype-Based")
+    print("Smooth Texture Only | CVCL-Konkle Overlap Classes (23)")
     print("=" * 80)
 
-    # Step 1: Load data and filter to target classes
-    print("\n1. Loading data...")
-    df = pd.read_csv(KONKLAB_CSV)
+    # Step 1: Load class list from CVCLKonkMatches.csv
+    print("\n1. Loading CVCL-Konkle overlap classes...")
+    classes_df = pd.read_csv(CLASSES_CSV)
+    csv_classes = [c.strip() for c in classes_df['Class'].tolist()]
+    print(f"   Classes from CVCLKonkMatches.csv: {len(csv_classes)}")
+    print(f"   Classes: {', '.join(sorted(csv_classes))}")
+
+    # Step 2: Load and filter synthetic data
+    print("\n2. Loading and filtering SyntheticKonkle data...")
+    df = pd.read_csv(MASTER_CSV)
     print(f"   Total images: {len(df)}")
 
-    if args.classes_csv:
-        # Use provided CSV to determine classes
-        classes_df = pd.read_csv(args.classes_csv)
-        csv_classes = [c.strip() for c in classes_df['Class'].tolist()]
-        # Map names from SyntheticKonkle/CVCL convention to KonkLab convention
-        name_mapping = {
-            'bread': 'breadloaf', 'muffin': 'muffins',
-            'christmastreeornamentball': 'christmastreeornamantball',
-            'candle': 'candleholderwithcandle', 'camera': 'camcorder',
-            'pillow': 'cushion', 'earrings': 'earings',
-            'handheldgame': 'gamehandheld', 'pumpkin': 'jack-o-lantern',
-            'saltandpeppershake': 'saltpeppershake',
-            'horse': 'toyhorse', 'rabbit': 'toyrabbit',
-            'dumbell': 'exercise_equipment',
-        }
-        overlapping_classes = sorted([name_mapping.get(c, c) for c in csv_classes])
-        print(f"   Classes from {args.classes_csv}: {len(overlapping_classes)}")
-    else:
-        # Get classes that overlap with SyntheticKonkle smooth test
-        overlapping_classes = get_overlapping_classes()
-        print(f"   Classes overlapping with SyntheticKonkle: {len(overlapping_classes)}")
+    # Filter to smooth texture only
+    df = df[df['texture'] == 'smooth'].reset_index(drop=True)
+    print(f"   Smooth texture images: {len(df)}")
 
-    # Filter to target classes only
-    df = df[df['Class'].isin(overlapping_classes)].reset_index(drop=True)
-    print(f"   Images in overlapping classes: {len(df)}")
+    # Exclude black and white (not in resized version)
+    df = df[~df['color'].isin(['black', 'white'])].reset_index(drop=True)
+    print(f"   After excluding black/white: {len(df)}")
 
-    available_classes = sorted(df['Class'].unique())
-    print(f"   Final classes to test: {len(available_classes)}")
-    print(f"   Classes: {', '.join(sorted(available_classes))}")
+    # Filter to CVCL-overlap classes only
+    # CSV uses SyntheticKonkle naming convention directly
+    df = df[df['class'].isin(csv_classes)].reset_index(drop=True)
+    print(f"   After filtering to CVCL-overlap classes: {len(df)}")
+
+    # Verify which classes actually exist in resized dataset
+    existing_folders = set()
+    for folder in glob.glob(os.path.join(DATA_DIR, '*_color')):
+        class_name = os.path.basename(folder).replace('_color', '')
+        existing_folders.add(class_name)
+
+    available_classes = sorted([c for c in csv_classes if c in existing_folders and c in df['class'].unique()])
+    print(f"   Classes available in resized dataset: {len(available_classes)}")
+    print(f"   Classes: {', '.join(available_classes)}")
+
+    # Final filter
+    df = df[df['class'].isin(available_classes)].reset_index(drop=True)
 
     # Verify each file actually exists
     valid_indices = []
     for idx, row in df.iterrows():
-        img_path = os.path.join(DATA_DIR, row['Class'], row['Filename'])
+        img_path = os.path.join(DATA_DIR, row['folder'], row['filename'])
         if os.path.exists(img_path):
             valid_indices.append(idx)
         else:
             print(f"   Warning: Missing file {img_path}")
 
     df = df.iloc[valid_indices].reset_index(drop=True)
-    print(f"   Final dataset size: {len(df)} images across {len(df['Class'].unique())} classes")
+    print(f"   Final dataset size: {len(df)} images across {len(available_classes)} classes")
 
-    # Step 2: Run tests for each model
+    # Step 3: Run tests for each model
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     for model_name in args.models:
@@ -366,7 +338,7 @@ def main():
         combined_results = pd.concat(all_results, ignore_index=True)
 
         # Save detailed results
-        results_file = os.path.join(RESULTS_DIR, f'prototype_class_konklab_{model_name}_results_{timestamp}.csv')
+        results_file = os.path.join(RESULTS_DIR, f'prototype_class_{model_name}_results_{timestamp}.csv')
         combined_results.to_csv(results_file, index=False)
         print(f"\nSaved detailed results: {results_file}")
 
@@ -402,11 +374,11 @@ def main():
         })
 
         summary_df = pd.DataFrame(summary_data)
-        summary_file = os.path.join(RESULTS_DIR, f'prototype_class_konklab_{model_name}_summary_{timestamp}.csv')
+        summary_file = os.path.join(RESULTS_DIR, f'prototype_class_{model_name}_summary_{timestamp}.csv')
         summary_df.to_csv(summary_file, index=False)
         print(f"Saved summary: {summary_file}")
 
-        print(f"\nOverall Accuracy: {overall_accuracy:.4f} +- {overall_std:.4f}")
+        print(f"\nOverall Accuracy: {overall_accuracy:.4f} +/- {overall_std:.4f}")
 
     print("\n" + "=" * 80)
     print("All tests completed!")

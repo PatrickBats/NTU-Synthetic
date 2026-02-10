@@ -26,7 +26,7 @@ Each class folder contains multiple real-world photographs of that object type w
 ## Usage in Project
 
 ### Classification Tests
-Used in `PatrickProject/KonkLab_Classification/` notebooks for:
+Used in `experiments/KonkLab_Classification/` notebooks for:
 - Class-level recognition (Class/)
 - Color discrimination (Color/)
 - Size discrimination (Size/)

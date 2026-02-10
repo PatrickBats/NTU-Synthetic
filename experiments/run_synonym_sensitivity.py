@@ -32,7 +32,7 @@ from src.models.feature_extractor import FeatureExtractor
 
 # Paths
 DATA_ROOT = os.path.join(REPO_ROOT, 'data', 'SyntheticKonkle')
-OUTPUT_DIR = os.path.join(REPO_ROOT, 'PatrickProject', 'Chart_Generation')
+OUTPUT_DIR = os.path.join(REPO_ROOT, 'experiments', 'Chart_Generation')
 
 # Synonym tests to run
 # Each test: (synonym_word, target_size, distractor_size)
