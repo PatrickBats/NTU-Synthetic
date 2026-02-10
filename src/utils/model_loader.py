@@ -7,12 +7,15 @@ from huggingface_hub import hf_hub_download
 import os
 import torch
 import sys
+from transformers import AutoModel, AutoProcessor
 
 def show_available_models():
     available_models = ['cvcl-resnext', 'cvcl-random',
                         'resnext', 'resnext-random',
                         'clip','clip-res',
-                        'dino_s_resnext50', 
+                        'dino_s_resnext50',
+                        'siglip',
+                        'dino_resnet50',
                         ]
     return available_models
 
@@ -64,13 +67,32 @@ def load_model(model_name, seed=0, device='cuda'):
             
         model.to(device)
     
+    elif model_name == "dino_resnet50":
+        # Original DINO ResNet-50 (Caron et al. 2021), self-supervised on ImageNet-1k
+        from torchvision import models as tv_models
+        model = tv_models.resnet50()
+        model.fc = torch.nn.Identity()
+        state_dict = torch.hub.load_state_dict_from_url(
+            url="https://dl.fbaipublicfiles.com/dino/dino_resnet50_pretrain/dino_resnet50_pretrain.pth",
+            map_location="cpu",
+        )
+        model.load_state_dict(state_dict, strict=False)
+        model.to(device)
+        from torchvision import transforms as pth_transforms
+        transform = pth_transforms.Compose([
+            pth_transforms.Resize(256),
+            pth_transforms.CenterCrop(224),
+            pth_transforms.ToTensor(),
+            pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ])
+
     elif model_parts[0].startswith("dino") :
         # ['dino_say_resnext50', 'dino_s_resnext50', 'dino_a_resnext50', 'dino_y_resnext50']
         arch, patch_size = "resnext50_32x4d", None
         checkpoint = hf_hub_download(repo_id="eminorhan/"+model_parts[0], filename=model_parts[0]+".pth")
         model = build_dino_mugs(arch, patch_size)
         load_dino_mugs(model, checkpoint, "teacher")
-        
+
         model.to(device)
         from torchvision import transforms as pth_transforms
         transform = pth_transforms.Compose([
@@ -78,7 +100,7 @@ def load_model(model_name, seed=0, device='cuda'):
             pth_transforms.ToTensor(),
             pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])
-        
+
         if "random" in model_name:
             randomize_resnet_weights(model)
             print(f"Successfully randomize weights for {model_name.split('-')[0]}")
@@ -105,7 +127,20 @@ def load_model(model_name, seed=0, device='cuda'):
         weights = eval("models.{}50_Weights.IMAGENET1K_V1".format(model_name_cap)) # ResNet50 by default
         transform = weights.transforms()
         model = eval("models.{}(weights=weights).to(device)".format(model_name))
-    
+
+    elif model_name == "siglip":
+        # SigLIP - Google's sigmoid-loss CLIP variant
+        model = AutoModel.from_pretrained("google/siglip-base-patch16-224").to(device)
+        processor = AutoProcessor.from_pretrained("google/siglip-base-patch16-224")
+        # Store processor on model for access in FeatureExtractor
+        model.processor = processor
+        # Create a transform function that works with PIL images
+        def siglip_transform(img):
+            # processor expects PIL image, returns dict with pixel_values
+            processed = processor(images=img, return_tensors="pt")
+            return processed["pixel_values"].squeeze(0)
+        transform = siglip_transform
+
     else:
         raise ValueError(f"Unknown model name: {model_name}")
     
