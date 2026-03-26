@@ -1,139 +1,198 @@
 # Benchmarking Attribute Discrimination in Infant-Scale Vision-Language Models
 
-This repository contains the code and experiments for the paper *"Benchmarking Attribute Discrimination in Infant-Scale Vision-Language Models"* by Patrick Batsell (Rice University), Satoshi Tsutsui, and Bihan Wen (Nanyang Technological University).
+<p align="center"><b>Official repository for our CVPR COGVL Workshop 2026 paper</b></p>
 
-## Motivation
+<p align="center">
+  Patrick Batsell, Satoshi Tsutsui, and Bihan Wen
+</p>
 
-Human infants learn to recognize objects and their visual attributes — color, size, texture — from remarkably limited experience. The Child Visual Concept Learning (CVCL) model, trained on just ~37,000 infant egocentric video frames (0.01% of CLIP's training data), achieves impressive object-level recognition. But can it also discriminate *attributes* like color and size the way infants do?
+<p align="center">
+  Rice University and Nanyang Technological University
+</p>
 
-Prior evaluations of infant-scale models focused only on **class-level** recognition (e.g., "Is this a ball or a cup?"). This paper asks a deeper question: **Do these models encode the visual properties that distinguish objects within the same category?**
+<p align="center">
+  <a href="Paper/Benchmarking_Attribute_Discrimination_in_Infant_Scale_Vision_Language_Models.pdf">Paper PDF</a>
+  ·
+  <a href="#setup">Setup</a>
+  ·
+  <a href="#running-the-benchmark">Run the Benchmark</a>
+  ·
+  <a href="#citation">Citation</a>
+</p>
 
-## Key Findings
+<p align="center">
+  <img src="experiments/image.png" alt="Benchmark overview figure" width="850">
+</p>
 
-We find a striking **dissociation** between infant-trained and web-trained models:
+## Overview
 
-- **CVCL (infant-trained)** excels at object class discrimination (~78%) but fails dramatically at color discrimination (~20%, below the 25% chance baseline). It shows a moderate advantage for size discrimination.
-- **CLIP and SigLIP (web-trained)** achieve strong performance on both class (~93%) and color (~68%) discrimination, likely because their text supervision provides explicit color labels.
-- **DINO (infant vision, no language)** performs similarly to CVCL on class tasks but also struggles with color, suggesting the deficit stems from limited visual experience rather than the language modality alone.
-- **Text-vision tests** reveal that web-trained models can ground color words to images, while CVCL's text encoder has almost no color grounding ability — yet CVCL shows surprising size grounding that CLIP lacks.
+This repo studies a simple but important question: infant-scale vision-language models can recognize objects, but do they also encode the visual attributes that distinguish objects within the same category?
 
-These results suggest that infant-scale visual experience builds strong **shape-based representations** but is insufficient for learning fine-grained color features. Language supervision at web scale provides color grounding, but size grounding may emerge differently.
+To test that, we build a controlled benchmark for **color**, **size**, and **texture** discrimination. The benchmark combines a synthetic dataset with tightly controlled attribute variation and a real-image validation set from **KonkLab**. We compare infant-trained models like **CVCL** against web-scale models like **CLIP** and **SigLIP**, as well as DINO and supervised ImageNet baselines.
 
-## Benchmark Design
+If you are here for the main takeaway: **infant-scale training produces strong object recognition and surprisingly solid size discrimination, but color remains a major weakness without large-scale text supervision.**
 
-We created a controlled synthetic benchmark of **67 object classes x 9 colors x 3 sizes x 2 textures**, generating 7,236 unique images using OmniGen2. Each object is rendered on a plain white background with systematic attribute variations, enabling precise isolation of individual visual properties.
+## Highlights
 
-Two complementary test paradigms:
-- **Prototype-based (image-only)**: Create a class prototype by averaging image embeddings, then 4-way forced choice via cosine similarity
-- **Text-vision (zero-shot)**: Match a text prompt (e.g., "red ball") directly to candidate images via cosine similarity
+- CVCL and infant-trained DINO are both strong on **object class discrimination**, but both struggle badly on **color discrimination**.
+- Web-scale vision-language models are strong on both **class** and **color**, especially in zero-shot text-image matching.
+- The same pattern holds on **real photographs** from KonkLab, not just on synthetic renders.
+- All forced-choice tasks use a **4-way setup**, so chance performance is **25%**.
 
-We also validate on the **KonkLab** dataset of real photographs to confirm that synthetic results generalize.
+### Headline Results
 
-## Models Compared
+These numbers come from the summary CSVs in `experiments/Chart_Generation/`.
 
-| Model | Training Data | Has Text Encoder |
-|-------|--------------|-----------------|
-| CVCL | ~37K infant egocentric frames (SAYCam) | Yes |
+#### Prototype-Based Class Discrimination
+
+| Model | Synthetic | Real (KonkLab) |
+| --- | ---: | ---: |
+| CVCL | 85.0% | 86.6% |
+| DINO (Infant) | 85.4% | 87.9% |
+| DINO (ImageNet) | 98.7% | 95.2% |
+| CLIP | 98.7% | 98.4% |
+| SigLIP | 100.0% | 99.0% |
+| ResNeXt | 98.2% | 99.0% |
+
+#### Prototype-Based Attribute Discrimination
+
+| Model | Color | Size | Texture |
+| --- | ---: | ---: | ---: |
+| CVCL | 19.0% | 62.6% | 90.1% |
+| DINO (Infant) | 21.0% | 64.2% | 90.7% |
+| DINO (ImageNet) | 25.9% | 56.3% | 93.1% |
+| CLIP | 67.2% | 50.5% | 90.3% |
+| SigLIP | 53.4% | 35.9% | 89.0% |
+| ResNeXt | 47.1% | 48.5% | 88.3% |
+
+#### Text-Vision Matching
+
+| Model | Class (Synthetic) | Class (Real) | Color |
+| --- | ---: | ---: | ---: |
+| CVCL | 29.0% | 35.4% | 11.6% |
+| CLIP | 95.8% | 99.0% | 98.6% |
+| SigLIP | 99.0% | 99.8% | 99.0% |
+
+## Benchmark
+
+The synthetic benchmark is designed to isolate visual attributes while keeping everything else controlled.
+
+- **67 object classes**
+- **9 colors**
+- **3 sizes**
+- **2 textures**
+- **7,236 total images**
+
+Each object is rendered on a plain white background with systematic attribute variation. The benchmark supports two complementary evaluation settings:
+
+1. **Prototype-based evaluation**
+   Compare image embeddings against an averaged class or attribute prototype.
+2. **Text-vision evaluation**
+   Match text prompts like `red ball` directly against candidate images.
+
+The repo also includes **KonkLab** real-image validation to check whether the synthetic trends transfer beyond generated images.
+
+## Models Evaluated
+
+| Model | Training Data | Text Encoder |
+| --- | --- | --- |
+| CVCL | ~37K infant egocentric frames from SAYCam | Yes |
 | DINO (Infant) | SAYCam S subset | No |
 | DINO (ImageNet) | ImageNet-1K | No |
 | CLIP | 400M web image-text pairs | Yes |
 | SigLIP | Web-scale image-text pairs | Yes |
-| ResNeXt | ImageNet-1K (supervised) | No |
+| ResNeXt | ImageNet-1K supervised training | No |
 
-## Repository Structure
+## Repo Layout
 
-```
-NTU-Synthetic/
-├── experiments/                         # Experiment scripts
-│   ├── run_prototype_class.py              # Class discrimination (synthetic)
-│   ├── run_prototype_class_konklab.py      # Class discrimination (real images)
-│   ├── run_prototype_color.py              # Color discrimination
-│   ├── run_prototype_size.py               # Size discrimination
-│   ├── run_prototype_texture.py            # Texture discrimination
-│   ├── run_textvision_class.py             # Text-vision class test (synthetic)
-│   ├── run_textvision_class_konklab.py     # Text-vision class test (real images)
-│   ├── run_textvision_color.py             # Text-vision color test
-│   ├── run_textvision_size.py              # Text-vision size test
-│   ├── run_synonym_sensitivity.py          # Synonym robustness analysis
-│   └── Chart_Generation/
-│       ├── generate_all_figures.py         # Master figure generation script
-│       ├── figures/                        # Output figures
-│       └── *.csv                           # Result summary files
-├── src/                                    # Core utilities
-│   ├── models/feature_extractor.py         # Unified model interface
-│   └── utils/model_loader.py              # Model loading
-├── data/
-│   ├── SyntheticKonkle/                   # Synthetic benchmark images
-│   ├── KonkLab/                           # Real photograph dataset
-│   └── CVCL_Konkle_Overlap/              # Class overlap mappings
-├── discover-hidden-visual-concepts/        # CVPR 2025 submodule
-├── Paper/                                  # Manuscript
-└── environment.yml                         # Conda environment
+```text
+experiments/                 Main experiment entrypoints
+experiments/Chart_Generation Result CSVs and figure generation
+src/                         Model loading and feature extraction utilities
+data/                        Synthetic benchmark, KonkLab, and overlap files
+Paper/                       Paper PDF and README preview asset
+scripts/                     Dataset download and environment checks
 ```
 
 ## Setup
 
+If you want to reproduce the benchmark from scratch:
+
 ```bash
-# Create environment
 conda env create -f environment.yml
 conda activate ntu-synthetic
 python -m spacy download en_core_web_sm
-
-# Install submodule
 pip install -e discover-hidden-visual-concepts/
-
-# Download datasets
 python scripts/download_konklab_dataset.py
 python scripts/download_synthetic_dataset.py
-
-# Verify setup
 python scripts/test_environment.py
 ```
 
-## Running Experiments
+## Running the Benchmark
 
-Each experiment script runs independently with configurable models, seeds, and trial counts:
+Run everything from the repo root unless noted otherwise.
+
+### Prototype-Based Evaluation
 
 ```bash
 cd experiments
 
-# Prototype-based tests (all 6 models)
 python run_prototype_class.py --num_trials 4000 --seeds 0 1 2
-python run_prototype_color.py --num_trials 4000 --seeds 0 1 2
-python run_prototype_size.py --num_trials 4000 --seeds 0 1 2
-python run_prototype_texture.py --num_trials 4000 --seeds 0 1 2
-
-# Real image validation
 python run_prototype_class_konklab.py --num_trials 4000 --seeds 0 1 2
 
-# Text-vision tests (3 text-encoder models)
-python run_textvision_class.py --num_trials 4000 --seeds 0 1 2
-python run_textvision_color.py --num_trials 4000 --seeds 0 1 2
-python run_textvision_size.py --num_trials 4000 --seeds 0 1 2
+python run_prototype_color.py --n_seeds 3 --trials_per_class 500
+python run_prototype_size.py --n_seeds 3 --trials_per_class 500
+python run_prototype_texture.py --n_seeds 3 --trials_per_class 500
+```
 
-# Synonym sensitivity analysis
+### Text-Vision Evaluation
+
+```bash
+cd experiments
+
+python run_textvision_class.py --num_trials 4000 --seeds 0 1 2
+python run_textvision_class_konklab.py --num_trials 4000 --seeds 0 1 2
+
+python run_textvision_color.py --n_seeds 3 --trials_per_class 500
+python run_textvision_size.py --n_seeds 3 --trials_per_class 500
+```
+
+### Additional Analysis
+
+```bash
+cd experiments
 python run_synonym_sensitivity.py
 ```
 
-Results are saved as CSV summaries in `experiments/Chart_Generation/`.
-
-## Generating Figures
+### Generate Paper Figures
 
 ```bash
 cd experiments/Chart_Generation
-python generate_all_figures.py          # All figures
-python generate_all_figures.py --fig 3  # Specific figure only
+python generate_all_figures.py
+python generate_all_figures.py --fig 3
 ```
+
+## Notes
+
+- Prototype class and text-vision class scripts use `--num_trials` and `--seeds`.
+- Attribute-focused scripts use `--trials_per_class` and `--n_seeds`.
+- Result summaries are written to `experiments/Chart_Generation/`.
+- The paper PDF is included locally at `Paper/Benchmarking_Attribute_Discrimination_in_Infant_Scale_Vision_Language_Models.pdf`.
 
 ## Citation
 
-If you use this benchmark or codebase, please cite:
+If you use this repo, benchmark, or results, please cite:
 
-```
-Batsell, P., Tsutsui, S., & Wen, B. (2025). Benchmarking Attribute Discrimination
-in Infant-Scale Vision-Language Models.
+```bibtex
+@inproceedings{batsell2026attribute,
+  title     = {Benchmarking Attribute Discrimination in Infant-Scale Vision-Language Models},
+  author    = {Batsell, Patrick and Tsutsui, Satoshi and Wen, Bihan},
+  booktitle = {CVPR COGVL Workshop},
+  year      = {2026}
+}
 ```
 
 ## Acknowledgments
 
-This work builds on the [Discovering Hidden Visual Concepts Beyond Linguistic Input in Infant Learning](https://arxiv.org/abs/2501.05205) framework (CVPR 2025).
+This project builds on the CVCL codebase and the earlier
+[`discover-hidden-visual-concepts`](discover-hidden-visual-concepts) framework.
