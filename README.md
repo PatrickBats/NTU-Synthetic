@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <img src="experiments/image.png" alt="Benchmark overview figure" width="850">
+  <img src="Paper/benchmark-overview.png" alt="Benchmark overview figure" width="850">
 </p>
 
 ## Overview
@@ -67,11 +67,11 @@ These numbers come from the summary CSVs in `experiments/Chart_Generation/`.
 
 #### Text-Vision Matching
 
-| Model | Class (Synthetic) | Class (Real) | Color |
-| --- | ---: | ---: | ---: |
-| CVCL | 29.0% | 35.4% | 11.6% |
-| CLIP | 95.8% | 99.0% | 98.6% |
-| SigLIP | 99.0% | 99.8% | 99.0% |
+| Model | Class (Synthetic) | Class (Real) | Color | Size |
+| --- | ---: | ---: | ---: | ---: |
+| CVCL | 29.0% | 35.4% | 11.6% | 36.4% |
+| CLIP | 95.8% | 99.0% | 98.6% | 44.1% |
+| SigLIP | 99.0% | 99.8% | 99.0% | 42.8% |
 
 ## Benchmark
 
